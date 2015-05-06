@@ -7,14 +7,32 @@ import(
 )
 
 func main() {
-  publicKey, privateKey, _ := box.GenerateKey(rand.Reader)
-  var nonce [24]byte
+  var clientNonce, serverNonce [24]byte
+  rand.Read(clientNonce[:])
+  rand.Read(serverNonce[:])
 
-  for i := 0; i < 4; i++ {
-    rand.Read(nonce[:])
-    test := []byte{'g', 'o', 'l', 'a', 'n', 'g'}
-    crypt := box.Seal(nil, test, &nonce, publicKey, privateKey)
-    uncrypt, _ := box.Open(nil, crypt, &nonce, publicKey, privateKey)
-    fmt.Printf("%s, %s, %s\n", test, crypt, uncrypt)
-  }
+  clientPublicKey, clientPrivateKey, _ := box.GenerateKey(rand.Reader)
+  serverPublicKey, serverPrivateKey, _ := box.GenerateKey(rand.Reader)
+
+  message := []byte{'g', 'o', 'l', 'a', 'n', 'g'}
+
+  // Seal with server's public key, aka encrypt it
+  // In this scenario, we are about to send a request to the server
+  // Encrypt with public, decrypt with private
+  encryptedOnClient := box.Seal(nil, message, &clientNonce, serverPublicKey, clientPrivateKey)
+  fmt.Printf("The client has encrypted the message: %s as %s\n", message, encryptedOnClient)
+
+  // Open with the server's private key, aka decrypt
+  decryptedOnServer, _ := box.Open(nil, encryptedOnClient, &serverNonce, clientPublicKey, serverPrivateKey)
+  fmt.Printf("The server has decrypted the message: %s as %s\n", message, decryptedOnServer)
+
+  // Do whatever with the message we decrypted...
+
+  // Encrypt our response, in this case, the message again
+  encryptedOnServer := box.Seal(nil, decryptedOnServer, &serverNonce, clientPublicKey, serverPrivateKey)
+  fmt.Printf("The server encrypted the message: %s as %s\n", decryptedOnServer, encryptedOnServer)
+
+  // Receive on the client
+  decryptedOnClient, _ := box.Open(nil, encryptedOnServer, &clientNonce, serverPublicKey, clientPrivateKey)
+  fmt.Printf("The client decrypted the message: %s as %s\n", encryptedOnServer, decryptedOnClient)
 }
