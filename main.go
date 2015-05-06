@@ -11,6 +11,7 @@ func main() {
   var nonce [24]byte
 
   for i := 0; i < 4; i++ {
+    rand.Read(nonce[:])
     test := []byte{'g', 'o', 'l', 'a', 'n', 'g'}
     crypt := box.Seal(nil, test, &nonce, publicKey, privateKey)
     uncrypt, _ := box.Open(nil, crypt, &nonce, publicKey, privateKey)
