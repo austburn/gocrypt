@@ -7,9 +7,8 @@ import(
 )
 
 func main() {
-  var clientNonce, serverNonce [24]byte
+  var clientNonce [24]byte
   rand.Read(clientNonce[:])
-  rand.Read(serverNonce[:])
 
   clientPublicKey, clientPrivateKey, _ := box.GenerateKey(rand.Reader)
   serverPublicKey, serverPrivateKey, _ := box.GenerateKey(rand.Reader)
@@ -29,10 +28,10 @@ func main() {
   // Do whatever with the message we decrypted...
 
   // Encrypt our response, in this case, the message again
-  encryptedOnServer := box.Seal(nil, decryptedOnServer, &serverNonce, clientPublicKey, serverPrivateKey)
+  encryptedOnServer := box.Seal(nil, decryptedOnServer, &clientNonce, clientPublicKey, serverPrivateKey)
   fmt.Printf("The server encrypted the message: %s as %s\n", decryptedOnServer, encryptedOnServer)
 
   // Receive on the client
-  decryptedOnClient, _ := box.Open(nil, encryptedOnServer, &serverNonce, serverPublicKey, clientPrivateKey)
+  decryptedOnClient, _ := box.Open(nil, encryptedOnServer, &clientNonce, serverPublicKey, clientPrivateKey)
   fmt.Printf("The client decrypted the message: %s as %s\n", encryptedOnServer, decryptedOnClient)
 }
