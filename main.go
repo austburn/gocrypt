@@ -23,8 +23,8 @@ func main() {
   fmt.Printf("The client has encrypted the message: %s as %s\n", message, encryptedOnClient)
 
   // Open with the server's private key, aka decrypt
-  decryptedOnServer, _ := box.Open(nil, encryptedOnClient, &serverNonce, clientPublicKey, serverPrivateKey)
-  fmt.Printf("The server has decrypted the message: %s as %s\n", message, decryptedOnServer)
+  decryptedOnServer, _ := box.Open(nil, encryptedOnClient, &clientNonce, clientPublicKey, serverPrivateKey)
+  fmt.Printf("The server has decrypted the message: %s as %s\n", encryptedOnClient, decryptedOnServer)
 
   // Do whatever with the message we decrypted...
 
@@ -33,6 +33,6 @@ func main() {
   fmt.Printf("The server encrypted the message: %s as %s\n", decryptedOnServer, encryptedOnServer)
 
   // Receive on the client
-  decryptedOnClient, _ := box.Open(nil, encryptedOnServer, &clientNonce, serverPublicKey, clientPrivateKey)
+  decryptedOnClient, _ := box.Open(nil, encryptedOnServer, &serverNonce, serverPublicKey, clientPrivateKey)
   fmt.Printf("The client decrypted the message: %s as %s\n", encryptedOnServer, decryptedOnClient)
 }
