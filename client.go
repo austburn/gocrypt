@@ -2,7 +2,6 @@ package main
 
 import(
   "net"
-  "errors"
   "fmt"
   "flag"
   "os"
@@ -20,8 +19,7 @@ func main() {
   conn, err := net.DialTCP("tcp", nil, serverAddress)
 
   if err != nil {
-    errMsg := fmt.Sprintf("Problem connecting to server on port :%d\n", *port)
-    errors.New(errMsg)
+    fmt.Print(err)
   }
   reader := bufio.NewReader(os.Stdin)
 

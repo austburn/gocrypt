@@ -2,7 +2,6 @@ package main
 
 import(
   "net"
-  "errors"
   "flag"
   "fmt"
 )
@@ -16,15 +15,14 @@ func main() {
 
   listener, err := net.ListenTCP("tcp", networkAddress)
   if err != nil {
-    errMsg := fmt.Sprintf("Problem connecting to port :%d on localhost\n", *port)
-    errors.New(errMsg)
+    fmt.Print(err)
   }
 
   for {
     conn, err := listener.AcceptTCP()
 
     if err != nil {
-      errors.New("Problem accepting connection.")
+      fmt.Print(err)
     }
 
     defer conn.Close()
