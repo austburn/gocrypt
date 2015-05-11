@@ -25,16 +25,24 @@ func main() {
     fmt.Print(err)
     os.Exit(2)
   }
-  handshake(conn)
+
+  var nonce [24]byte
+  sharedKey := handshake(conn)
+
   reader := bufio.NewReader(os.Stdin)
-  nonce := [24]byte{'l', 'e', 't', 's', 'p', 'r', 'e', 't', 'e', 'n', 'd', 't', 'h', 'i', 's', 'i', 's', 'm', 'y', 'n', 'o', 'n', 'c', 'e'}
+
   for {
     fmt.Print("> ")
     msg, _ := reader.ReadBytes(0xA)
 
     // Kill the newline char
     msg = msg[:len(msg) - 1]
-    sm := SecureMessage{msg: msg, nonce: nonce}
+
+    rand.Read(nonce[:])
+    encryptedMessage := box.SealAfterPrecomputation(nil, msg, &nonce, sharedKey)
+
+    sm := SecureMessage{msg: encryptedMessage, nonce: nonce}
+
     _, err := conn.Write(sm.toByteArray())
 
     response := make([]byte, 1024)
@@ -45,7 +53,14 @@ func main() {
       break
     }
 
-    fmt.Printf("%s", response)
+    serverMessage := ConstructSecureMessage(response)
+    decryptedServerMessage, ok := box.OpenAfterPrecomputation(nil, serverMessage.msg, &serverMessage.nonce, sharedKey)
+
+    if ok == false {
+      fmt.Printf("Problem decrypting message.\n")
+    }
+
+    fmt.Printf("%s\n", decryptedServerMessage)
   }
 }
 

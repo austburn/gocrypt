@@ -1,4 +1,5 @@
 package main
+import "bytes"
 
 type SecureMessage struct {
   msg   []byte
@@ -13,6 +14,8 @@ func ConstructSecureMessage(sm []byte) SecureMessage {
   var nonce [24]byte
   nonceArray := sm[:24]
   copy(nonce[:], nonceArray)
-  msg := sm[24:]
+
+  // Trim out all unnecessary bytes
+  msg := bytes.Trim(sm[24:], "\x00")
   return SecureMessage{msg: msg, nonce: nonce}
 }

@@ -36,7 +36,8 @@ func main() {
 }
 
 func handleConnection(conn *net.TCPConn) {
-  handshake(conn)
+  var nonce [24]byte
+  sharedKey := handshake(conn)
 
   for {
     msg := make([]byte, 1024)
@@ -47,9 +48,17 @@ func handleConnection(conn *net.TCPConn) {
     }
 
     sm := ConstructSecureMessage(msg)
-    fmt.Printf("%s %s\n", sm.nonce, sm.msg)
+    decryptedClientMessage, ok := box.OpenAfterPrecomputation(nil, sm.msg, &sm.nonce, sharedKey)
 
-    conn.Write(msg)
+    if ok == false {
+      fmt.Print("Problem decrypting the message.\n")
+    }
+
+    rand.Read(nonce[:])
+    encryptedServerMessage := box.SealAfterPrecomputation(nil, decryptedClientMessage, &nonce, sharedKey)
+    response := SecureMessage{msg: encryptedServerMessage, nonce: nonce}
+
+    conn.Write(response.toByteArray())
   }
 }
 
