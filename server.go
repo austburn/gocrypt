@@ -2,18 +2,18 @@ package main
 
 import(
   "net"
-  "flag"
   "fmt"
   "os"
   "crypto/rand"
   "golang.org/x/crypto/nacl/box"
 )
 
-func main() {
-  port := flag.Int("p", 9000, "Port to host server on.")
-  flag.Parse()
+type Server struct {
+  port int
+}
 
-  address := fmt.Sprintf("127.0.0.1:%d", *port)
+func (s *Server) Run() {
+  address := fmt.Sprintf("127.0.0.1:%d", s.port)
   networkAddress, _ := net.ResolveTCPAddr("tcp", address)
 
   listener, err := net.ListenTCP("tcp", networkAddress)
@@ -36,33 +36,22 @@ func main() {
 }
 
 func handleConnection(conn *net.TCPConn) {
-  var nonce [24]byte
-  sharedKey := handshake(conn)
+  sharedKey := serverHandshake(conn)
+  secureConnection := SecureConnection{conn: conn, sharedKey: sharedKey}
 
   for {
     msg := make([]byte, 1024)
-    _, err := conn.Read(msg)
+    _, err := secureConnection.Read(msg)
 
     if err != nil {
       break
     }
 
-    sm := ConstructSecureMessage(msg)
-    decryptedClientMessage, ok := box.OpenAfterPrecomputation(nil, sm.msg, &sm.nonce, sharedKey)
-
-    if ok == false {
-      fmt.Print("Problem decrypting the message.\n")
-    }
-
-    rand.Read(nonce[:])
-    encryptedServerMessage := box.SealAfterPrecomputation(nil, decryptedClientMessage, &nonce, sharedKey)
-    response := SecureMessage{msg: encryptedServerMessage, nonce: nonce}
-
-    conn.Write(response.toByteArray())
+    secureConnection.Write(msg)
   }
 }
 
-func handshake(conn *net.TCPConn) *[32] byte {
+func serverHandshake(conn *net.TCPConn) *[32] byte {
   var peerKey, sharedKey [32]byte
 
   publicKey, privateKey, _ := box.GenerateKey(rand.Reader)
