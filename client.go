@@ -6,6 +6,8 @@ import(
   "flag"
   "os"
   "bufio"
+  "crypto/rand"
+  "golang.org/x/crypto/nacl/box"
 )
 
 func main() {
@@ -23,6 +25,7 @@ func main() {
     fmt.Print(err)
     os.Exit(2)
   }
+  handshake(conn)
   reader := bufio.NewReader(os.Stdin)
   nonce := [24]byte{'l', 'e', 't', 's', 'p', 'r', 'e', 't', 'e', 'n', 'd', 't', 'h', 'i', 's', 'i', 's', 'm', 'y', 'n', 'o', 'n', 'c', 'e'}
   for {
@@ -44,4 +47,20 @@ func main() {
 
     fmt.Printf("%s", response)
   }
+}
+
+func handshake(conn *net.TCPConn) *[32] byte {
+  var peerKey, sharedKey [32]byte
+
+  publicKey, privateKey, _ := box.GenerateKey(rand.Reader)
+
+  conn.Write(publicKey[:])
+
+  peerKeyArray := make([]byte, 32)
+  conn.Read(peerKeyArray)
+  copy(peerKey[:], peerKeyArray)
+
+  box.Precompute(&sharedKey, &peerKey, privateKey)
+
+  return &sharedKey
 }

@@ -5,6 +5,8 @@ import(
   "flag"
   "fmt"
   "os"
+  "crypto/rand"
+  "golang.org/x/crypto/nacl/box"
 )
 
 func main() {
@@ -28,11 +30,14 @@ func main() {
     }
 
     defer conn.Close()
+
     go handleConnection(conn)
   }
 }
 
 func handleConnection(conn *net.TCPConn) {
+  handshake(conn)
+
   for {
     msg := make([]byte, 1024)
     _, err := conn.Read(msg)
@@ -47,3 +52,20 @@ func handleConnection(conn *net.TCPConn) {
     conn.Write(msg)
   }
 }
+
+func handshake(conn *net.TCPConn) *[32] byte {
+  var peerKey, sharedKey [32]byte
+
+  publicKey, privateKey, _ := box.GenerateKey(rand.Reader)
+
+  peerKeyArray := make([]byte, 32)
+  conn.Read(peerKeyArray)
+  copy(peerKey[:], peerKeyArray)
+
+  conn.Write(publicKey[:])
+
+  box.Precompute(&sharedKey, &peerKey, privateKey)
+
+  return &sharedKey
+}
+
