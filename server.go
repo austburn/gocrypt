@@ -4,6 +4,7 @@ import(
   "net"
   "flag"
   "fmt"
+  "os"
 )
 
 func main() {
@@ -16,6 +17,7 @@ func main() {
   listener, err := net.ListenTCP("tcp", networkAddress)
   if err != nil {
     fmt.Print(err)
+    os.Exit(2)
   }
 
   for {
@@ -33,7 +35,15 @@ func main() {
 func handleConnection(conn *net.TCPConn) {
   for {
     msg := make([]byte, 1024)
-    conn.Read(msg)
+    _, err := conn.Read(msg)
+
+    if err != nil {
+      break
+    }
+
+    sm := ConstructSecureMessage(msg)
+    fmt.Printf("%s %s\n", sm.nonce, sm.msg)
+
     conn.Write(msg)
   }
 }
