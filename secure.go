@@ -24,6 +24,7 @@ func ConstructSecureMessage(sm []byte) SecureMessage {
 
   // Trim out all unnecessary bytes
   msg := bytes.Trim(sm[24:], "\x00")
+
   return SecureMessage{msg: msg, nonce: nonce}
 }
 
@@ -35,6 +36,7 @@ type SecureConnection struct {
 
 func (s *SecureConnection) Read(p []byte) (int, error) {
   message := make([]byte, 2048)
+  // Read the message from the buffer
   n, err := s.conn.Read(message)
 
   secureMessage := ConstructSecureMessage(message)
@@ -44,6 +46,7 @@ func (s *SecureConnection) Read(p []byte) (int, error) {
     return 0, errors.New("Problem decrypting the message.\n")
   }
 
+  // Actually copy it to the destination byte array
   n = copy(p, decryptedMessage)
 
   return n, err
@@ -51,10 +54,30 @@ func (s *SecureConnection) Read(p []byte) (int, error) {
 
 func (s *SecureConnection) Write(p []byte) (int, error) {
   var nonce [24]byte
+
+  // Create a new nonce for each message sent
   rand.Read(nonce[:])
 
   encryptedMessage := box.SealAfterPrecomputation(nil, p, &nonce, s.sharedKey)
   sm := SecureMessage{msg: encryptedMessage, nonce: nonce}
 
+  // Write it to the connection
   return s.conn.Write(sm.toByteArray())
 }
+
+func Handshake(conn *net.TCPConn) *[32] byte {
+  var peerKey, sharedKey [32]byte
+
+  publicKey, privateKey, _ := box.GenerateKey(rand.Reader)
+
+  conn.Write(publicKey[:])
+
+  peerKeyArray := make([]byte, 32)
+  conn.Read(peerKeyArray)
+  copy(peerKey[:], peerKeyArray)
+
+  box.Precompute(&sharedKey, &peerKey, privateKey)
+
+  return &sharedKey
+}
+

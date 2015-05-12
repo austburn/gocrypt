@@ -6,8 +6,6 @@ import(
   "os"
   "bufio"
   "errors"
-  "golang.org/x/crypto/nacl/box"
-  "crypto/rand"
 )
 
 type Client struct {
@@ -26,15 +24,15 @@ func (c *Client) Connect() error {
 
   fmt.Printf("Connection on %s\n", address)
 
-  sharedKey := clientHandshake(conn)
+  sharedKey := Handshake(conn)
   secureConnection := SecureConnection{conn: conn, sharedKey: sharedKey}
 
   reader := bufio.NewReader(os.Stdin)
 
   for {
     fmt.Print("> ")
+    // Read up to the newline character
     msg, _ := reader.ReadBytes(0xA)
-
     // Kill the newline char
     msg = msg[:len(msg) - 1]
 
@@ -52,20 +50,4 @@ func (c *Client) Connect() error {
   }
 
   return nil
-}
-
-func clientHandshake(conn *net.TCPConn) *[32] byte {
-  var peerKey, sharedKey [32]byte
-
-  publicKey, privateKey, _ := box.GenerateKey(rand.Reader)
-
-  conn.Write(publicKey[:])
-
-  peerKeyArray := make([]byte, 32)
-  conn.Read(peerKeyArray)
-  copy(peerKey[:], peerKeyArray)
-
-  box.Precompute(&sharedKey, &peerKey, privateKey)
-
-  return &sharedKey
 }
