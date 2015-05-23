@@ -1,53 +1,53 @@
 package main
 
-import(
-  "net"
-  "fmt"
-  "os"
-  "bufio"
-  "errors"
+import (
+    "bufio"
+    "errors"
+    "fmt"
+    "net"
+    "os"
 )
 
 type Client struct {
-  port int
+    port int
 }
 
 func (c *Client) Connect() error {
-  address := fmt.Sprintf("127.0.0.1:%d", c.port)
-  serverAddress, _ := net.ResolveTCPAddr("tcp", address)
+    address := fmt.Sprintf("127.0.0.1:%d", c.port)
+    serverAddress, _ := net.ResolveTCPAddr("tcp", address)
 
-  conn, err := net.DialTCP("tcp", nil, serverAddress)
-  if err != nil {
-    return errors.New("Problem connecting to server, is it running?\n")
-  }
-  defer conn.Close()
-
-  fmt.Printf("Connection on %s\n", address)
-
-  sharedKey := Handshake(conn)
-  secureConnection := SecureConnection{conn: conn, sharedKey: sharedKey}
-
-  reader := bufio.NewReader(os.Stdin)
-
-  for {
-    fmt.Print("> ")
-    // Read up to the newline character
-    msg, _ := reader.ReadBytes(0xA)
-    // Kill the newline char
-    msg = msg[:len(msg) - 1]
-
-    _, err := secureConnection.Write(msg)
-
-    response := make([]byte, 1024)
-
-    _, err = secureConnection.Read(response)
+    conn, err := net.DialTCP("tcp", nil, serverAddress)
     if err != nil {
-      fmt.Print("Connection to the server was closed.\n")
-      break
+        return errors.New("Problem connecting to server, is it running?\n")
+    }
+    defer conn.Close()
+
+    fmt.Printf("Connection on %s\n", address)
+
+    sharedKey := Handshake(conn)
+    secureConnection := SecureConnection{conn: conn, sharedKey: sharedKey}
+
+    reader := bufio.NewReader(os.Stdin)
+
+    for {
+        fmt.Print("> ")
+        // Read up to the newline character
+        msg, _ := reader.ReadBytes(0xA)
+        // Kill the newline char
+        msg = msg[:len(msg)-1]
+
+        _, err := secureConnection.Write(msg)
+
+        response := make([]byte, 1024)
+
+        _, err = secureConnection.Read(response)
+        if err != nil {
+            fmt.Print("Connection to the server was closed.\n")
+            break
+        }
+
+        fmt.Printf("%s\n", response)
     }
 
-    fmt.Printf("%s\n", response)
-  }
-
-  return nil
+    return nil
 }
